@@ -11,7 +11,7 @@
 
 ### General
 
--   Decorators are called when the class is declared — not when an object is instantiated.
+-   Decorators are called when the **_class_** is declared — **_not_** when an **_object_** is instantiated.
 -   Decorators are not allowed on **_constructors_**.
 -   **Decorator Factory** is simply a function that returns the expression (function) that will be called by the decorator at runtime.
 -   multiple decorators &#8594; composition in math
@@ -152,7 +152,3 @@ function prefix(prefix: string) {
 -   `target`: The prototype of the class
 -   `propertyKey`: The name of the method (`string` | `symbol`).
 -   `parameterIndex`: The index of parameter in the list of the function's parameters (`number`).
-
-```
-
-```

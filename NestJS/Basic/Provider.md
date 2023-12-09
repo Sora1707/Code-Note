@@ -19,3 +19,28 @@
 
 -   Class **_inherits_** other classes may need some providers but passing through `super()` is **_tedious_**
 -   `@Inject()` at **_property level_**
+
+### Custom Provider
+
+```ts
+const provider = {
+    provide: UsersService,
+    provide: 'CONFIG', // get via @Inject(...)
+
+    useValue: someValue,
+    useClass: UsersService,
+
+    useFactory: (arg1, arg2,...) => {
+        return provider;
+    }
+    inject: [arg1, arg2], // list of arguments to pass into Factory
+},
+```
+
+#### Export
+
+```ts
+exports: ["CONFIG"]; // string
+exports: [UserService]; // class name
+exports: [provider]; // whole object
+```
