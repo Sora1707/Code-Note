@@ -2,6 +2,11 @@
 
 1.  [Basic](#basic)
 2.  [Schema](#schema)
+    -   [Query and Mutation](#query--mutation)
+    -   [Subscription](#subscription-real-time)
+    -   [Enum](#enum)
+    -   [Union](#union-object-only)
+    -   [Input](#input)
 3.  [Resolver](#resolver)
 4.  [Context](#schema)
 5.  [More](#more)
@@ -105,6 +110,10 @@ const { url } = await startStandaloneServer(server, {
     }
     ```
 -   Each Mutation Response should implements this interface
+
+## Subscription (Real time)
+
+-   maintain an active connection
 
 ## Enum
 
@@ -261,8 +270,9 @@ directive @auth(roles: [Role!]) on FIELD_DEFINITION
 
 ```typescript
 import { MapperKind, getDirective, mapSchema } from "@graphql-tools/utils";
+import { defaultFieldResolver, GraphQLSchema } from "graphql";
 
-function upperDirectiveTransform(schema, directiveName) {
+function upperDirectiveTransform(schema: GraphQLSchema, directiveName: string) {
     return mapSchema(schema, {
         // Executes once for each object field in the schema
         [MapperKind.OBJECT_FIELD]: fieldConfig => {
@@ -275,29 +285,28 @@ function upperDirectiveTransform(schema, directiveName) {
 
             if (upperDirective) {
                 // Get this field's original resolver
-                const { resolve } = fieldConfig;
+                const { resolve = defaultFieldResolver } = fieldConfig;
 
                 // get the args from the Directive
                 const { isSet } = upperDirective;
 
                 // Replace the original resolver with a function that *first* calls
                 // the original resolver, then converts its result to upper case
-                return {
-                    ...fieldConfig,
-                    async resolve(source, args, context, info) {
-                        // Get the original value
-                        const result = await resolve(
-                            source,
-                            args,
-                            context,
-                            info
-                        );
-                        if (typeof result === "string" && isSet) {
-                            return result.toUpperCase();
-                        }
-                        return result;
-                    },
+                fieldConfig.resolve = async function (
+                    source,
+                    args,
+                    context,
+                    info
+                ) {
+                    // Get the original value
+                    const result = await resolve(source, args, context, info);
+                    if (typeof result === "string" && isSet) {
+                        return result.toUpperCase();
+                    }
+                    return result;
                 };
+
+                return fieldConfig;
             }
         },
     });
@@ -307,6 +316,49 @@ schema = upperDirectiveTransform(shema, "uppercase");
 ```
 
 ## Custom Scalar
+
+#### Basic Interface
+
+```ts
+interface CustomScalar<T, K> {
+    // value from the client
+    parseValue: GraphQLScalarValueParser<K>; // take T returns K
+    // value sent to the client
+    serialize: GraphQLScalarSerializer<T>; // K returns to T
+    parseLiteral: GraphQLScalarLiteralParser<K>; //
+}
+```
+
+#### Example: `Date` Scalar
+
+```ts
+import { GraphQLScalarType, Kind } from "graphql";
+
+const dateScalar = new GraphQLScalarType({
+    name: "Date",
+    description: "Date custom scalar type",
+    serialize(value: Date) {
+        return value.getTime();
+    },
+    parseValue(value: number) {
+        return new Date(value);
+    },
+    parseLiteral(ast) {
+        if (ast.kind === Kind.INT) {
+            return new Date(parseInt(ast.value, 10));
+        }
+        return null;
+    },
+});
+```
+
+#### Define in resolver
+
+```ts
+const resolvers = {
+    Date: dateScalar,
+};
+```
 
 ## GraphQLError
 
